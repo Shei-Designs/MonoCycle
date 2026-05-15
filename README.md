@@ -114,10 +114,10 @@ Installers / AppImages / `.dmg` / `.msi` land in `desktop/src-tauri/target/relea
 
 [GNU GPL v3](LICENSE) © 2026 Andrew O'Shei / [Shei Designs](https://github.com/AOShei).
 
-Free software in the proper sense: read it, modify it, ship it, distribute it — but keep it open.
+Free software in the proper sense — read it, modify it, ship it, distribute it — but keep it open.
 
 ## Author
 
-**Andrew O'Shei** — electronic musician, hardware-sampler enthusiast, and the builder behind [Shei Designs](https://github.com/AOShei). MonoCycle is the tool I wanted while making sample packs for my own gear; I'm releasing it because I figure if I wanted it, someone else does too.
+**Andrew O'Shei** — electronic musician, hardware-sampler enthusiast, and the builder behind [Shei Designs](https://github.com/AOShei). MonoCycle is a tool I built while making sample packs for my Elektron Digitakt and Roland SP-404mkii. I'm releasing it because I think it will be useful for other musicians who want to turn their sampler into a powerful monosynth.
 
-If MonoCycle ends up on a track you make, I'd genuinely love to hear it.
+If MonoCycle ends up on a track you make, I'd genuinely love to hear it. Please leave a star on github so more people can discover this app !
