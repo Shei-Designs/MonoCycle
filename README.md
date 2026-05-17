@@ -52,14 +52,14 @@ If you're already in a DAW with Vital, Serum, or Pigments — you have everythin
 
 ## Educational use
 
-Synthesis is one of those topics where the math reads dry but the audio is obvious the moment you hear it. MonoCycle is built around that gap: every parameter changes the scope's drawing in real time, and the four scope readouts (PEAK, RMS, ZCR, DC) make the math show up in the picture.
+MonoCycle is also built as an educational tool. Every parameter changes the scope's drawing in real time, and the four scope readouts (PEAK, RMS, ZCR, DC) help you associate the math and parameters with the changes in sound.
 
 - Drag the FM amount on two sines and watch the spectrum bloom.
 - Wavefold a triangle until it looks like an interference pattern.
 - Crush a saw to 3-bit and see the staircase appear.
 - Draw a wavetable by hand and use it as a source.
 
-It's a synthesis tutor with a WAV export button.
+It's an interactive synthesis tutor.
 
 ## Install
 
