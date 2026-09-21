@@ -1,9 +1,18 @@
 [package]
-name = "desktop"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+name = "monocycle"
+version = "1.0.0"
+description = "Single-cycle waveform designer for hardware samplers"
+authors = ["Andrew O'Shei <support@sheidesigns.com>"]
+license = "GPL-3.0-only"
+repository = "https://github.com/Shei-Designs/MonoCycle"
+homepage = "https://github.com/Shei-Designs/MonoCycle"
+readme = "../../README.md"
+keywords = ["audio", "synthesizer", "wavetable", "sampler", "dsp"]
+categories = ["multimedia::audio"]
 edition = "2021"
+# Not Tauri's floor (it asks 1.77) — transitive deps (time, plist, darling)
+# are what actually require 1.88. Verified against Cargo.lock.
+rust-version = "1.88"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,7 +20,7 @@ edition = "2021"
 # The `_lib` suffix may seem redundant but it is necessary
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "desktop_lib"
+name = "monocycle_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -24,3 +33,11 @@ tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# Release builds are what users download, so optimise for size and strip
+# symbols — this is a GUI app, not something anyone profiles from a bundle.
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

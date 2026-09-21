@@ -1,0 +1,199 @@
+# Builds MonoCycle for every supported platform and attaches the installers to
+# a GitHub Release.
+#
+# Triggered by pushing a tag like `v1.0.0`, or manually from the Actions tab
+# (workflow_dispatch) to test the matrix without cutting a release.
+#
+# The release is created as a DRAFT. Nothing is public until you review the
+# attached artifacts and press Publish.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'What to do'
+        required: true
+        default: test-build
+        type: choice
+        options:
+          - test-build      # build all four platforms, attach installers to the run. No release.
+          - draft-release   # build and open a draft release (needs a tag that already exists)
+      tag:
+        description: 'Tag to release (only used for draft-release, e.g. v1.0.0)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      # Never cancel the other platforms because one failed — a partial matrix
+      # still tells you which platforms are healthy.
+      fail-fast: false
+      matrix:
+        include:
+          # macOS universal: one .dmg covering Apple Silicon and Intel.
+          - platform: macos-latest
+            target: universal-apple-darwin
+            args: '--target universal-apple-darwin'
+            label: macOS (universal)
+
+          # Desktop Linux. ubuntu-22.04 (glibc 2.35) rather than 24.04 so the
+          # binaries also run on older distros; newer glibc is backwards
+          # compatible, older is not.
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: ''
+            label: Linux x86_64
+
+          # Raspberry Pi 4/5 on 64-bit Raspberry Pi OS, and any other aarch64
+          # Linux desktop. Native ARM runner — no cross-compilation, which for
+          # webkit2gtk is the difference between "works" and "a weekend".
+          - platform: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            args: ''
+            label: Linux aarch64 / Raspberry Pi
+
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: ''
+            label: Windows x86_64
+
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # webkit2gtk-4.1 is the WebView; the rest are what tauri-bundler needs to
+      # produce .deb/.rpm/AppImage. Only Linux needs any of this.
+      - name: Install Linux dependencies
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            patchelf \
+            file \
+            desktop-file-utils
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # macOS builds a universal binary, so it needs both arches.
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './desktop/src-tauri -> target'
+          key: ${{ matrix.target }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: desktop/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: ./desktop
+        run: pnpm install --frozen-lockfile
+
+      # Resolve the tag in a shell step rather than an inline expression: the
+      # `cond && A || B` idiom silently falls through to B when A is the empty
+      # string, which would tag a release during a test build.
+      - name: Resolve release tag
+        id: rel
+        shell: bash
+        run: |
+          if [ "${{ inputs.mode }}" = "test-build" ]; then
+            echo "Test build — no release will be created."
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          else
+            TAG="${{ inputs.tag || github.ref_name }}"
+            echo "Releasing as $TAG"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Two modes. A tag push (or mode=draft-release) passes tagName, which makes
+      # tauri-action create the draft release and upload the installers to it.
+      # mode=test-build passes no tagName, so it only builds — the installers are
+      # then attached to the workflow run below and nothing touches Releases.
+      - name: Build
+        id: build
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # linuxdeploy ships as an AppImage and needs FUSE to mount itself,
+          # which CI runners don't reliably provide — without this the AppImage
+          # step fails with a bare "failed to run linuxdeploy".
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          # linuxdeploy bundles an old binutils `strip` that chokes on the
+          # `.relr.dyn` section modern toolchains emit. Our own binary is
+          # already stripped by the release profile, so skipping this loses
+          # nothing.
+          NO_STRIP: 1
+        with:
+          projectPath: ./desktop
+          tagName: ${{ steps.rel.outputs.tag }}
+          releaseName: 'MonoCycle __VERSION__'
+          releaseBody: |
+            Single-cycle waveform designer for hardware samplers.
+
+            ## Downloads
+
+            | Platform | File |
+            |---|---|
+            | Linux (any distro, no install) | `.AppImage` |
+            | Debian / Ubuntu / Mint | `.deb` |
+            | Fedora / openSUSE | `.rpm` |
+            | Raspberry Pi OS 64-bit, Pi 4/5 | `aarch64.deb` |
+            | Windows 10/11 | `.msi` or `-setup.exe` |
+            | macOS (Apple Silicon + Intel) | `.dmg` |
+
+            The builds are **not code-signed**. Windows SmartScreen and macOS
+            Gatekeeper will warn on first launch — see the
+            [install notes](https://github.com/Shei-Designs/MonoCycle#install)
+            for the one-time steps to get past them.
+
+            See [CHANGELOG.md](https://github.com/Shei-Designs/MonoCycle/blob/main/CHANGELOG.md)
+            for what changed.
+          # Draft so the artifacts can be checked before anyone can download them.
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+
+      # Only in test-build mode: collect the installers onto the workflow run so
+      # they can be downloaded and tried without a release existing.
+      - name: Upload installers to the workflow run
+        if: inputs.mode == 'test-build'
+        uses: actions/upload-artifact@v4
+        with:
+          name: monocycle-${{ matrix.target }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            desktop/src-tauri/target/release/bundle/deb/*.deb
+            desktop/src-tauri/target/release/bundle/rpm/*.rpm
+            desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/**/release/bundle/deb/*.deb
+            desktop/src-tauri/target/**/release/bundle/rpm/*.rpm
+            desktop/src-tauri/target/**/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/**/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/release/bundle/msi/*.msi
+            desktop/src-tauri/target/release/bundle/nsis/*.exe

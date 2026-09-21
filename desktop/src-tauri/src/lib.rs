@@ -13,16 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/// The version shown in the About panel. Single-sourced from Cargo.toml so a
+/// release only ever means bumping the manifests, never the markup.
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn app_version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
 }
 
-// Writes raw bytes to a user-supplied path. Used by the WAV exporter:
-// the frontend pops a native save dialog (tauri-plugin-dialog) to get a
-// user-blessed path, then hands the bytes here. Keeping this as an explicit
-// command lets us avoid pulling in tauri-plugin-fs and its scope/permission
-// system for the single thing we actually need to do with the filesystem.
+/// Writes raw bytes to a user-supplied path. Used by the WAV exporter:
+/// the frontend pops a native save dialog (tauri-plugin-dialog) to get a
+/// user-blessed path, then hands the bytes here. Keeping this as an explicit
+/// command lets us avoid pulling in tauri-plugin-fs and its scope/permission
+/// system for the single thing we actually need to do with the filesystem.
 #[tauri::command]
 fn save_wav(path: String, bytes: Vec<u8>) -> Result<(), String> {
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())
@@ -43,7 +45,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![greet, save_wav])
+        .invoke_handler(tauri::generate_handler![app_version, save_wav])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

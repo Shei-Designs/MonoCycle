@@ -2,9 +2,15 @@
   <img src="assets/banner.svg" alt="MonoCycle — single-cycle waveform designer for hardware samplers" width="100%"/>
 </p>
 
+<p align="center">
+  <a href="https://github.com/Shei-Designs/MonoCycle/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Shei-Designs/MonoCycle?style=flat-square&color=ff2bd6"></a>
+  <a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/license-GPL--3.0-ff2bd6?style=flat-square"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Raspberry%20Pi-ff2bd6?style=flat-square">
+</p>
+
 **A single-cycle waveform designer for hardware samplers.** Build precise, perfectly-tuned single-cycle WAVs in a focused workbench, then drop them onto your Roland SP-404mkII, Elektron Digitakt, or any sampler that handles short loops — and your sampler is suddenly a synthesizer.
 
-> Status: pre-release. Linux / macOS / Windows builds via Tauri 2. Open source under GPL v3.
+> **[⇩ Download MonoCycle 1.0.0](https://github.com/Shei-Designs/MonoCycle/releases/latest)** — Linux, macOS, Windows and Raspberry Pi. Free software under GPL v3.
 
 ---
 
@@ -35,20 +41,43 @@ If you're already in a DAW with Vital, Serum, or Pigments — you have everythin
 - **10 combine modes** for the two oscillators:
   blend · ring · AM · FM (true phase modulation) · min · max · XOR · AND · OR · wavefold
 - **Four shape stages**, in order: phase distortion → wavefold → drive (tanh saturation) → bit crush (down to 2-bit)
-- **Filter section**: lowpass / highpass / bandpass / notch + cutoff drive + LFO modulation
+- **Filter section** — lowpass / highpass / bandpass / notch + resonance, cutoff drive and LFO modulation. **Auditioning only**: the filter shapes what you hear, not what you export (see [What the filter does and doesn't do](#what-the-filter-does-and-doesnt-do)).
 - **Drawable wavetable editor** — paint a 256-point custom shape, use it as a source on either oscillator
 - **16 factory presets** covering the classic single-cycle territories (clean sine, bright saw, ring bell, FM brass, wavefolded sine, narrow pulse, bit-crushed triangle, super saw, …)
-- **Live preview at the export pitch** — what you hear is exactly what the WAV will sound like when triggered at native rate on your sampler. No surprises.
+- **User presets** — name, save, recall and delete your own patches; they capture the full state including filter, tune, cycles and the wavetable
+- **Live preview at the export pitch** — the preview loop is pitched to your target note, so the tone and tuning you audition are the tone and tuning of the file
 - **48 kHz mono WAV export**, 16- or 24-bit PCM, 1 / 2 / 4 / 8-cycle output, cent-accurate detuning readout
 - **Filename auto-encoding** — exported files are named for their settings (`SAW_FM_SINE_C2_x1_16b_2026-05-15T14-23-15.wav`) so you can keep them straight on the card
+- **Fully offline** — no network access, no telemetry, no account. Fonts are bundled; the app never phones anywhere.
 
 ## The workflow
 
-1. Pick or design a tone. Two oscillators, mix mode, shape, filter — whatever sounds right.
+1. Pick or design a tone. Two oscillators, mix mode, shape — whatever sounds right.
 2. Set the **target note** (the MIDI pitch the file will play at when triggered at native rate on the sampler).
 3. Hit **Play**. The preview pitches the loop to that target note, so what you hear is the file.
 4. Hit **Export WAV**. Drop the file onto your sampler's SD card.
 5. Trigger it. Pitch up and down it with your sampler's pitch / chromatic mode. You now have a synthesizer voice.
+
+### What the filter does and doesn't do
+
+The filter panel is marked `// PREVIEW ONLY` in the app, and it means it. A single-cycle file is one static period — it physically cannot contain a filter sweep or an LFO, because there is no "over time" inside one cycle. So the filter, its resonance, its drive and its LFO all shape the **audition** only. They are never baked into the exported WAV.
+
+That is the right way round: your sampler has its own filter and envelopes, and that is where the movement should come from. Use MonoCycle's filter to check how a waveform will behave once your hardware filter gets hold of it, then export the raw waveform and let the sampler do the sweeping.
+
+Everything to the left of the filter — both oscillators, the mix mode, and all four shape stages — **is** baked into the file. Normalize and the target note affect it too.
+
+### A note on tuning accuracy
+
+A cycle has to be a whole number of samples, so the achievable pitch lands on a grid, and the grid gets coarser as the note gets higher. MonoCycle always shows the real error in cents next to the note name, but as a rule of thumb at 48 kHz:
+
+| Target range | Worst-case error | Verdict |
+|---|---|---|
+| C0 – B1 | ~1 cent | Inaudible |
+| C2 – D3 | ~2 cents | Inaudible |
+| C3 – E4 | ~5 cents | Fine in a mix |
+| F4 and above | up to ~16 cents | Audibly off on its own |
+
+So: **design and export low — C1 to C3 — and let your sampler transpose upward.** A 734-sample C2 file pitched up to C5 by the sampler is perfectly in tune; a 46-sample C6 file is not. This is a property of single-cycle audio itself, not of MonoCycle, and every tool in this space has it. The cents readout is there so you always know where you stand.
 
 ## Educational use
 
@@ -63,20 +92,63 @@ It's an interactive synthesis tutor.
 
 ## Install
 
-Pre-built binaries for Linux, macOS, and Windows will ship with the first stable release. Until then, build from source — it takes ~3 minutes the first time and seconds after.
+Grab the file for your platform from the **[latest release](https://github.com/Shei-Designs/MonoCycle/releases/latest)**.
+
+| Platform | Download | Notes |
+|---|---|---|
+| **Linux** (any distro) | `MonoCycle_1.0.0_amd64.AppImage` | `chmod +x` it and run. No install. Large (~160 MB) because it carries its own GStreamer so audio works everywhere. |
+| **Debian / Ubuntu / Mint** | `MonoCycle_1.0.0_amd64.deb` | `sudo apt install ./MonoCycle_1.0.0_amd64.deb` |
+| **Fedora / openSUSE** | `MonoCycle-1.0.0-1.x86_64.rpm` | `sudo dnf install ./MonoCycle-1.0.0-1.x86_64.rpm` |
+| **Raspberry Pi 4 / 5** | `MonoCycle_1.0.0_arm64.deb` | 64-bit Raspberry Pi OS. See below. |
+| **Windows 10 / 11** | `MonoCycle_1.0.0_x64_en-US.msi` | Or the `-setup.exe`. See below. |
+| **macOS** (Apple Silicon + Intel) | `MonoCycle_1.0.0_universal.dmg` | See below. |
+
+### The builds are not code-signed
+
+Code-signing certificates cost money every year, and this is a free tool given away by one person. So your OS will be suspicious the first time. This is expected, and it is a one-time step:
+
+- **Windows** — SmartScreen shows "Windows protected your PC". Click **More info** → **Run anyway**.
+- **macOS** — Gatekeeper says the app "is damaged" or "cannot be opened". Right-click the app in Applications → **Open** → **Open**. If macOS still refuses, run once in Terminal:
+  ```sh
+  xattr -cr /Applications/MonoCycle.app
+  ```
+- **Linux** — no warnings, nothing to do.
+
+If you would rather not trust a binary at all, that is entirely reasonable: [build it from source](#build-from-source). It is one command and the whole app is 2,800 lines you can read yourself.
+
+### Raspberry Pi
+
+MonoCycle runs on a Pi 4 or Pi 5 under 64-bit Raspberry Pi OS (Bookworm or newer). Install the `arm64.deb`:
+
+```sh
+sudo apt install ./MonoCycle_1.0.0_arm64.deb
+```
+
+Two things worth knowing:
+
+- **32-bit Raspberry Pi OS is not supported.** Check with `uname -m` — you need `aarch64`, not `armv7l`. Re-flash with the 64-bit image if needed.
+- **Screen size.** The UI wants 1280×800 or larger to breathe. It will scale down to 800×560 and scroll below that, so the official 7" 800×480 touchscreen works but is cramped. An HDMI monitor is much nicer.
+
+Audio goes through the Pi's normal output. Expect the scope to redraw a little less smoothly than on a desktop — the DSP and export are unaffected.
 
 ## Build from source
 
 **Prerequisites:**
 
-- [Rust](https://rustup.rs/) (stable, 1.80+)
+- [Rust](https://rustup.rs/) — stable, **1.88 or newer** (set by transitive dependencies, not by Tauri)
 - [Node](https://nodejs.org/) 18+ and [pnpm](https://pnpm.io/)
 - Tauri 2 platform deps — see [Tauri prerequisites](https://tauri.app/start/prerequisites/)
 
-Arch / EndeavourOS example:
+Arch / EndeavourOS:
 
 ```sh
 sudo pacman -S webkit2gtk-4.1 libayatana-appindicator librsvg gtk3 patchelf
+```
+
+Debian / Ubuntu / Raspberry Pi OS:
+
+```sh
+sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libgtk-3-dev patchelf build-essential curl file
 ```
 
 **Run the dev build:**
@@ -95,7 +167,7 @@ The first run pulls and compiles ~500 Rust crates (a few minutes). After that, d
 pnpm tauri build
 ```
 
-Installers / AppImages / `.dmg` / `.msi` land in `desktop/src-tauri/target/release/bundle/`.
+Installers / AppImages / `.dmg` / `.msi` land in `desktop/src-tauri/target/release/bundle/`. Release builds use LTO and are a good deal slower to compile than dev builds.
 
 ## Keyboard shortcuts
 
@@ -107,19 +179,21 @@ Installers / AppImages / `.dmg` / `.msi` land in `desktop/src-tauri/target/relea
 
 ## Roadmap
 
-- **User presets** — save / recall / share named parameter sets (next up)
 - **Post-processing waveform visualization** — see the output waveform after filter / volume / pitch alongside the source waveform, so changes are visible as well as audible
+- **Preset import / export** — share patches as files rather than just keeping them in local storage
 - **Drag-and-drop export** — drop a single-cycle directly onto a sampler folder, no Save dialog
-- **Stable release builds** for Linux (AppImage + tarball), macOS (universal `.dmg`), Windows (`.msi`)
+- **Wavetable morphing** — interpolate between two drawn shapes across an exported set
 
 ## License
 
-[GNU GPL v3](LICENSE) © 2026 Andrew O'Shei / [Shei Designs](https://github.com/AOShei).
+[GNU GPL v3](LICENSE) © 2026 Andrew O'Shei / [Shei Designs](https://github.com/Shei-Designs).
 
 Free software in the proper sense — read it, modify it, ship it, distribute it — but keep it open.
 
+The bundled typefaces (JetBrains Mono and VT323) are SIL OFL 1.1, not GPL — see [`desktop/src/fonts/OFL.txt`](desktop/src/fonts/OFL.txt).
+
 ## Author
 
-**Andrew O'Shei** — electronic musician, hardware-sampler enthusiast, and the builder behind [Shei Designs](https://github.com/AOShei). MonoCycle is a tool I built while making sample packs for my Elektron Digitakt and Roland SP-404mkii. I'm releasing it because I think it will be useful for other musicians who want to turn their sampler into a powerful monosynth.
+**Andrew O'Shei** — electronic musician, hardware-sampler enthusiast, and the builder behind [Shei Designs](https://github.com/Shei-Designs). MonoCycle is a tool I built while making sample packs for my Elektron Digitakt and Roland SP-404mkii. I'm releasing it because I think it will be useful for other musicians who want to turn their sampler into a powerful monosynth.
 
 If MonoCycle ends up on a track you make, I'd genuinely love to hear it. Please leave a star on github, it helps others discover the app !

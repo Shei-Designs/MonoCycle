@@ -19,10 +19,46 @@
 <head>
 <meta charset="UTF-8">
 <title>MONOCYCLE — single-cycle waveform designer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=VT323&display=swap" rel="stylesheet">
 <style>
+/* ---------- BUNDLED FONTS ----------
+   Self-hosted so the app renders correctly with no network access and makes
+   no outbound requests at runtime. Both faces are SIL OFL 1.1 (GPL-compatible,
+   but not themselves GPL) — see fonts/OFL.txt for the full licence and
+   attribution. JetBrains Mono is the variable font: one file covers the 400,
+   500 and 700 weights the UI asks for via its wght axis.
+   ----------------------------------- */
+@font-face{
+  font-family:'JetBrains Mono';
+  font-style:normal;
+  font-weight:400 800;
+  font-display:block;
+  src:url('fonts/jetbrains-mono-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face{
+  font-family:'JetBrains Mono';
+  font-style:normal;
+  font-weight:400 800;
+  font-display:block;
+  src:url('fonts/jetbrains-mono-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face{
+  font-family:'VT323';
+  font-style:normal;
+  font-weight:400;
+  font-display:block;
+  src:url('fonts/vt323-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face{
+  font-family:'VT323';
+  font-style:normal;
+  font-weight:400;
+  font-display:block;
+  src:url('fonts/vt323-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 :root{
   --bg:#0c0820;
   --bg-deep:#060414;
@@ -860,8 +896,10 @@ select:hover{border-color:var(--border-lit)}
           </div>
         </div>
         <div class="row">
-          <div class="row-label"><span>Cutoff</span><span class="val" id="val-cutoff">2000 Hz</span></div>
-          <input type="range" id="filt-cutoff" min="20" max="20000" value="2000" step="1">
+          <div class="row-label"><span>Cutoff</span><span class="val" id="val-cutoff">2.00 kHz</span></div>
+          <!-- Linear 0-1000 travel, mapped to 20 Hz-20 kHz logarithmically by
+               setLogCutoff(). 667 is the travel position for the 2 kHz default. -->
+          <input type="range" id="filt-cutoff" min="0" max="1000" value="667" step="1">
         </div>
         <div class="row">
           <div class="row-label"><span>Resonance</span><span class="val" id="val-q">1.0</span></div>
@@ -911,7 +949,7 @@ select:hover{border-color:var(--border-lit)}
           </div>
         </div>
         <div style="margin-top:10px;font-size:10px;color:var(--text-dim);letter-spacing:0.1em;line-height:1.5">
-          TIP: Click+drag inside the scope to draw a custom waveform. Set OSC A or OSC B wave type to "WT" to use the wavetable as the source. Press ESC or click outside the panel to close.
+          TIP: Click+drag inside the editor above to draw a custom waveform. Set OSC A or OSC B wave type to "WT" to use the wavetable as the source. Press ESC or click outside the panel to close.
         </div>
       </div>
     </div>
@@ -930,7 +968,7 @@ select:hover{border-color:var(--border-lit)}
           </div>
         </div>
         <div class="about-meta">
-          <div class="about-row"><span class="k">VERSION</span><span class="v">0.1.0</span></div>
+          <div class="about-row"><span class="k">VERSION</span><span class="v" id="about-version">—</span></div>
           <div class="about-row"><span class="k">AUTHOR</span><span class="v">Andrew O'Shei</span></div>
           <div class="about-row"><span class="k">ORG</span><span class="v">Shei Designs</span></div>
           <div class="about-row"><span class="k">LICENSE</span><span class="v">GNU GPL v3</span></div>
@@ -941,11 +979,11 @@ select:hover{border-color:var(--border-lit)}
           It is free software, and you are welcome to redistribute it under the terms of the
           <a class="about-link" href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3</a>.
         </div>
-        <a class="about-repo about-link" href="https://github.com/AOShei/MonoCycle">
-          github.com/AOShei/MonoCycle ↗
+        <a class="about-repo about-link" href="https://github.com/Shei-Designs/MonoCycle">
+          github.com/Shei-Designs/MonoCycle ↗
         </a>
         <div class="about-star">
-          If MonoCycle helps you make something, a <a class="about-link" href="https://github.com/AOShei/MonoCycle">★ on GitHub</a> helps it reach others.
+          If MonoCycle helps you make something, a <a class="about-link" href="https://github.com/Shei-Designs/MonoCycle">★ on GitHub</a> helps it reach others.
         </div>
       </div>
     </div>
@@ -1054,15 +1092,27 @@ let filterDriveNode = null;
 let lfoNode = null;
 let lfoGain = null;
 let gainNode = null;
+let compressorNode = null;
+let limiterNode = null;
 let analyserNode = null;
-let currentBuffer = null;
+// Current voice's gain node, plus the anchor used to work out where it is in
+// its loop so a replacement can start in phase with it. See "Voices" below.
+let voiceGain = null;
+let voiceStartTime = 0;
+let voiceStartOffset = 0;
 // Reused buffer for the post-processing analyser. 8192 samples covers two
 // cycles even at the lowest tune note (C0 ≈ 16 Hz → ~2935 samples/cycle).
 const analyserBuffer = new Float32Array(8192);
 
+// Crossfade length when swapping to a re-rendered waveform, and how long a
+// slider drag is coalesced before rebuilding. 35 ms is long enough that the
+// fade itself is inaudible and short enough that the preview still feels live.
+const XFADE = 0.035;
+const REFRESH_DEBOUNCE = 30;
+
 const state = {
   oscA:{ type:'sine', phase:0, harm:64, sym:0.5, steps:8, seed:7, level:1.0 },
-  oscB:{ type:'sine', phase:0, harm:64, sym:0.5, steps:8, ratio:1, level:0.0 },
+  oscB:{ type:'sine', phase:0, harm:64, sym:0.5, steps:8, seed:7, ratio:1, level:0.0 },
   mix:{ mode:'BLEND', amount:0 },
   shape:{ fold:0, drive:0, crush:0, pd:0 },
   filter:{ type:'off', cutoff:2000, q:1, lfoRate:2, lfoDepth:0, drive:0 },
@@ -1122,16 +1172,22 @@ function wSH(p, steps, seed){
   const rng = mulberry32(seed * 7919 + idx + 1);
   return rng() * 2 - 1;
 }
+// Noise is generated once into a fixed-resolution table and then resampled to
+// whatever length the caller is rendering. This is deliberate: it means the
+// preview (WORKING_N) and the exported file (getExportLen()) sample the *same*
+// underlying random shape, so what you audition is what lands in the WAV.
+// Generating fresh noise per render length would make the two diverge.
+const NOISE_TABLE_N = 2048;
 let _noiseCache = null;
 let _noiseSeedCache = -1;
 function wNoise(p, seed){
   if (_noiseSeedCache !== seed || !_noiseCache) {
-    _noiseCache = new Float32Array(WORKING_N);
+    _noiseCache = new Float32Array(NOISE_TABLE_N);
     const rng = mulberry32(seed * 7919 + 1);
-    for (let i = 0; i < WORKING_N; i++) _noiseCache[i] = rng() * 2 - 1;
+    for (let i = 0; i < NOISE_TABLE_N; i++) _noiseCache[i] = rng() * 2 - 1;
     _noiseSeedCache = seed;
   }
-  const i = Math.floor(p * WORKING_N) % WORKING_N;
+  const i = Math.floor(p * NOISE_TABLE_N) % NOISE_TABLE_N;
   return _noiseCache[i];
 }
 function wWavetable(p, wt){
@@ -1273,12 +1329,15 @@ function combine(a, b, mode, amt){
       }
       case 'FOLD': {
         let z = x + y * amt * 2;
-        // fold into -1..1
-        while (z > 1 || z < -1) {
+        // Fold into -1..1. Bounded like the fold in applyShape(): inputs are
+        // always finite here, but an unguarded loop is one bad value away from
+        // hanging the UI thread.
+        let safety = 0;
+        while ((z > 1 || z < -1) && safety++ < 32) {
           if (z > 1) z = 2 - z;
           else if (z < -1) z = -2 - z;
         }
-        v = z;
+        v = Math.max(-1, Math.min(1, z));
         break;
       }
       default: v = x;
@@ -1871,18 +1930,13 @@ document.querySelectorAll('#filter-type-row .mode-btn').forEach(b => {
     // through (or around) filterNode.
     const wasOff = prev === 'off';
     const isOff = ft === 'off';
-    if (sourceNode && audioContext && wasOff !== isOff) {
-      try { sourceNode.disconnect(); } catch(e){}
-      connectSourceToChain(sourceNode);
-    }
+    if (sourceNode && audioContext && wasOff !== isOff) rerouteVoice();
   };
 });
-document.getElementById('filt-cutoff').addEventListener('input', e => {
-  // Log-scale cutoff feel — but we'll use linear underlying value 20–20000
-  state.filter.cutoff = parseFloat(e.target.value);
-  document.getElementById('val-cutoff').textContent = Math.round(state.filter.cutoff) + ' Hz';
-  updateFilterNode();
-});
+// NOTE: the cutoff slider is wired up in setLogCutoff() below — it reinterprets
+// the slider's linear 0–1000 travel as a logarithmic 20 Hz–20 kHz sweep. Do not
+// add a second 'input' listener here; an earlier linear one used to run first
+// and briefly push raw slider units into the biquad on every drag.
 document.getElementById('filt-q').addEventListener('input', e => {
   state.filter.q = parseFloat(e.target.value);
   document.getElementById('val-q').textContent = state.filter.q.toFixed(1);
@@ -1904,21 +1958,25 @@ document.getElementById('filt-drive').addEventListener('input', e => {
   updateFilterDrive();
 });
 
-// Make cutoff slider log-feel by reinterpreting linear input as log
+// The cutoff slider travels 0–1000 linearly; we map that onto 20 Hz–20 kHz
+// logarithmically so the low end gets the resolution it needs. The slider's
+// markup carries those bounds and the travel position (667) that corresponds
+// to state.filter.cutoff's 2 kHz default.
+function cutoffSliderToHz(v){ return 20 * Math.pow(1000, v / 1000); }
+function cutoffHzToSlider(hz){ return 1000 * Math.log(hz / 20) / Math.log(1000); }
 function setLogCutoff(){
   const el = document.getElementById('filt-cutoff');
-  el.min = 0; el.max = 1000; el.step = 1; el.value = 600;
-  function getHz(v){ return 20 * Math.pow(1000, v / 1000); }
-  el.removeEventListener('input', el._oldHandler || (()=>{}));
   function handler(){
-    const hz = getHz(parseFloat(el.value));
+    const hz = cutoffSliderToHz(parseFloat(el.value));
     state.filter.cutoff = hz;
     document.getElementById('val-cutoff').textContent = hz < 1000 ? Math.round(hz) + ' Hz' : (hz/1000).toFixed(2) + ' kHz';
     updateFilterNode();
   }
   el.addEventListener('input', handler);
-  // initialize
-  handler();
+  // No initial handler() call: state.filter.cutoff is the source of truth and
+  // init() pushes it onto the slider via syncFilterUIFromState(). Calling it
+  // here would instead let the slider's integer travel position redefine the
+  // default (2000 Hz -> 2004.6 Hz).
 }
 setLogCutoff();
 
@@ -1960,11 +2018,25 @@ document.querySelectorAll('#bits-group .option-btn').forEach(b => {
 });
 
 // Volume
+// The fader is square-law: the gain node gets volume², which gives a more
+// natural taper than a linear fader. The dB readout therefore has to describe
+// volume², not volume — 20·log10(v²) = 40·log10(v). Describing v alone
+// understated the real attenuation by half (the 50% default reads −12dB, and
+// is −12dB; it used to claim −6dB).
+function volumeToGain(v){ return v * v; }
+function volumeDbText(v){
+  if (v <= 0.001) return '−∞dB';
+  const db = 40 * Math.log10(v);
+  return (db >= 0 ? '+' : '') + db.toFixed(0) + 'dB';
+}
+function updateVolumeReadout(){
+  document.getElementById('volume').value = Math.round(state.volume * 100);
+  document.getElementById('val-vol').textContent = volumeDbText(state.volume);
+}
 document.getElementById('volume').addEventListener('input', e => {
   state.volume = parseFloat(e.target.value) / 100;
-  const db = state.volume <= 0.001 ? -Infinity : 20 * Math.log10(state.volume);
-  document.getElementById('val-vol').textContent = db === -Infinity ? '−∞dB' : (db >= 0 ? '+' : '') + db.toFixed(0) + 'dB';
-  if (gainNode) gainNode.gain.setTargetAtTime(state.volume * state.volume, audioContext.currentTime, 0.02);
+  document.getElementById('val-vol').textContent = volumeDbText(state.volume);
+  if (gainNode) gainNode.gain.setTargetAtTime(volumeToGain(state.volume), audioContext.currentTime, 0.02);
 });
 
 document.getElementById('btn-reset').onclick = () => {
@@ -1990,7 +2062,7 @@ function initAudio(){
   filterDriveNode = audioContext.createWaveShaper();
   filterDriveNode.curve = makeDriveCurve(0);
   gainNode = audioContext.createGain();
-  gainNode.gain.value = state.volume * state.volume;
+  gainNode.gain.value = volumeToGain(state.volume);
   // LFO
   lfoNode = audioContext.createOscillator();
   lfoNode.frequency.value = state.filter.lfoRate;
@@ -2006,10 +2078,65 @@ function initAudio(){
   analyserNode.fftSize = analyserBuffer.length;
   analyserNode.smoothingTimeConstant = 0;
 
+  // Two-stage safety net on the monitoring output, because a resonant biquad
+  // adds gain the rest of the chain knows nothing about: a normalized saw
+  // through a lowpass at Q=1 already pushes past full scale, and the
+  // destination hard-clips it — measured 393 railed samples in a 0.7 s window
+  // at full volume, which is audible as crackle.
+  //
+  // Both stages are transparent at or below 0 dBFS by construction, so every
+  // patch the synth itself can produce (renderFull normalizes to 0.99) passes
+  // through untouched. They only act on the overshoot a filter adds.
+  //
+  //   compressorNode — the part that actually helps. Threshold at 0 dBFS with
+  //     a hard knee means it is literally inactive until the signal exceeds
+  //     full scale, then reduces gain 20:1 rather than clipping.
+  //   limiterNode    — catches the little the compressor leaves above 1.0.
+  //     A WaveShaper clamps its input to [-1, 1], so it can only ever cap a
+  //     signal, never reduce it gracefully; that is why it is the backstop and
+  //     not the main event.
+  //
+  // This is the monitoring path only. The filter is preview-only and is never
+  // baked into the exported WAV, so neither stage can colour an export.
+  compressorNode = audioContext.createDynamicsCompressor();
+  compressorNode.threshold.value = 0;      // 0 dBFS — inactive below full scale
+  compressorNode.knee.value = 0;           // hard, so nothing under 0 dBFS is touched
+  compressorNode.ratio.value = 20;
+  compressorNode.attack.value = 0.003;
+  compressorNode.release.value = 0.1;
+
+  limiterNode = audioContext.createWaveShaper();
+  limiterNode.curve = makeLimiterCurve();
+  // No oversampling. It band-limits the shaping, but the resampling filters
+  // ring and let the output overshoot the curve's own ceiling — measured 1.0869
+  // out of a curve that tops out at 0.9988. For a backstop whose entire job is
+  // "never exceed full scale", exactness beats smoothness.
+  limiterNode.oversample = 'none';
+
   filterNode.connect(filterDriveNode);
   filterDriveNode.connect(gainNode);
-  gainNode.connect(analyserNode);          // parallel tap (no effect on audio)
-  gainNode.connect(audioContext.destination);
+  gainNode.connect(compressorNode);
+  compressorNode.connect(limiterNode);
+  limiterNode.connect(analyserNode);       // parallel tap (no effect on audio)
+  limiterNode.connect(audioContext.destination);
+}
+
+// Identity up to LIMIT_KNEE, then a short tanh shoulder that approaches but
+// never reaches 1.0. The knee sits just above the loudest thing the synth can
+// hand the monitoring chain — renderFull normalizes to 0.99, which the 0 dB
+// filter-drive curve maps to ~0.9945 — so clean patches are bit-transparent.
+const LIMIT_KNEE = 0.995;
+function makeLimiterCurve(){
+  const N = 8192;
+  const curve = new Float32Array(N);
+  const range = 1 - LIMIT_KNEE;
+  for (let i = 0; i < N; i++) {
+    const x = (i / (N - 1)) * 2 - 1;
+    const a = Math.abs(x);
+    const y = a <= LIMIT_KNEE ? a : LIMIT_KNEE + range * Math.tanh((a - LIMIT_KNEE) / range);
+    curve[i] = Math.sign(x) * Math.min(y, 1);
+  }
+  return curve;
 }
 
 function makeDriveCurve(driveDb){
@@ -2042,16 +2169,6 @@ function updateLFO(){
   lfoGain.gain.setTargetAtTime(depthHz, audioContext.currentTime, 0.01);
 }
 
-function buildPlayBuffer(){
-  initAudio();
-  // Render WORKING_N samples and put in an AudioBuffer
-  const samples = renderFull(WORKING_N);
-  const buf = audioContext.createBuffer(1, samples.length, audioContext.sampleRate);
-  buf.copyToChannel(samples, 0);
-  currentBuffer = buf;
-  return buf;
-}
-
 function getPlaybackRate(){
   // The live preview buffer is WORKING_N samples long, so its fundamental is
   // sampleRate / WORKING_N. We scale playbackRate so the buffer plays at the
@@ -2065,45 +2182,142 @@ function getPlaybackRate(){
 
 function updatePlaybackRate(){
   if (!sourceNode || !audioContext) return;
-  sourceNode.playbackRate.setTargetAtTime(getPlaybackRate(), audioContext.currentTime, 0.01);
+  const t = audioContext.currentTime;
+  // Re-anchor phase tracking before the rate starts gliding — voicePhaseOffsetAt()
+  // extrapolates from a steady rate, so leaving the old anchor in place would let
+  // the error accumulate across tune changes.
+  voiceStartOffset = voicePhaseOffsetAt(t);
+  voiceStartTime = t;
+  sourceNode.playbackRate.setTargetAtTime(getPlaybackRate(), t, 0.01);
+}
+
+// ---- Voices -------------------------------------------------------------
+// A "voice" is a looping BufferSource plus its own GainNode. Parameter changes
+// never mutate a playing voice; they build a new one and crossfade to it.
+// Two things make that inaudible, and both are load-bearing:
+//
+//  1. Gain ramps. Swapping sources at full gain sums two copies of a very
+//     similar signal — up to +6 dB, i.e. clipping — and then cuts the old one
+//     off mid-cycle. Measured on a single one-notch slider move, the old code
+//     produced a 0.58 sample-to-sample step (3x the waveform's own largest) and
+//     7 clipped samples.
+//  2. Phase alignment. The incoming voice starts at the exact point in its loop
+//     the outgoing voice is passing through. Starting at phase 0 instead makes
+//     the two copies fight through the whole overlap: crossfading a waveform
+//     with *itself* measured 0.68 RMS error that way, versus 0 when aligned.
+//
+// The ramps are linear rather than equal-power on purpose. Consecutive
+// waveforms are near-identical, and correlated signals sum linearly
+// (a*x + (1-a)*x = x); equal-power would push the middle of every fade ~3 dB hot.
+
+// Where the live voice is in its loop, in buffer-seconds, at time `atTime`.
+function voicePhaseOffsetAt(atTime){
+  if (!sourceNode || !audioContext) return 0;
+  const loop = WORKING_N / audioContext.sampleRate;
+  const advanced = (atTime - voiceStartTime) * sourceNode.playbackRate.value;
+  let off = (voiceStartOffset + advanced) % loop;
+  if (off < 0) off += loop;
+  return off;
+}
+
+// Build a voice from a rendered cycle. Silent and unrouted until the caller
+// connects it and schedules its fade.
+function createVoice(samples){
+  const buf = audioContext.createBuffer(1, samples.length, audioContext.sampleRate);
+  buf.copyToChannel(samples, 0);
+  const src = audioContext.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  src.playbackRate.value = getPlaybackRate();
+  const gain = audioContext.createGain();
+  gain.gain.value = 0;
+  src.connect(gain);
+  return { src, gain };
+}
+
+// Fade a voice out from `at` and tear it down once it has really stopped.
+function retireVoice(src, gain, at){
+  if (!src) return;
+  if (gain) {
+    const now = audioContext.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(0, at + XFADE);
+  }
+  // Stop on the audio clock, never a setTimeout. A late main-thread timer —
+  // and this thread is busy re-rendering and repainting the scope — would leave
+  // two voices summing at full gain, which is the failure this replaces.
+  try { src.stop(at + XFADE + 0.02); } catch(e){}
+  src.onended = () => { try { src.disconnect(); if (gain) gain.disconnect(); } catch(e){} };
 }
 
 function startSource(){
   initAudio();
-  if (sourceNode) { try { sourceNode.stop(); } catch(e){} sourceNode.disconnect(); }
-  const buf = buildPlayBuffer();
-  sourceNode = audioContext.createBufferSource();
-  sourceNode.buffer = buf;
-  sourceNode.loop = true;
-  sourceNode.playbackRate.value = getPlaybackRate();
-  connectSourceToChain(sourceNode);
-  // gentle fade in to avoid clicks
+  if (sourceNode) retireVoice(sourceNode, voiceGain, audioContext.currentTime);
+  const { src, gain } = createVoice(renderFull(WORKING_N));
+  connectVoiceToChain(gain);
+  const t0 = audioContext.currentTime + 0.005;
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(1, t0 + 0.02);
+  src.start(t0, 0);
+  sourceNode = src;
+  voiceGain = gain;
+  voiceStartTime = t0;
+  voiceStartOffset = 0;
+
+  // Master fade-in on top of the voice fade, so hitting PLAY can never thump
+  // a speaker no matter what the waveform starts on.
   gainNode.gain.cancelScheduledValues(audioContext.currentTime);
   gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-  gainNode.gain.linearRampToValueAtTime(state.volume * state.volume, audioContext.currentTime + 0.04);
-  sourceNode.start();
+  gainNode.gain.linearRampToValueAtTime(volumeToGain(state.volume), audioContext.currentTime + 0.04);
 }
 
-// Routes a source either through the filter or around it.
+// Routes a voice's output either through the filter or around it.
 // When filter is OFF, we use a true bypass so neither cutoff nor Q
 // can color the sound — biquad 'allpass' is magnitude-flat but
 // still introduces phase shift / ringing at high Q.
-function connectSourceToChain(src){
+function connectVoiceToChain(node){
   if (state.filter.type === 'off') {
-    src.connect(filterDriveNode);
+    node.connect(filterDriveNode);
   } else {
-    src.connect(filterNode);
+    node.connect(filterNode);
   }
+}
+
+// Swinging the live voice between the filter and the bypass is a step change in
+// the signal — an audible click. Duck it, re-route at the bottom of the dip,
+// bring it back. If the timer runs late the gain is simply still at zero, so a
+// busy main thread costs a slightly longer dip and never a click.
+function rerouteVoice(){
+  if (!audioContext || !voiceGain) return;
+  const DIP = 0.012;
+  const target = voiceGain;
+  const t = audioContext.currentTime;
+  target.gain.cancelScheduledValues(t);
+  target.gain.setValueAtTime(target.gain.value, t);
+  target.gain.linearRampToValueAtTime(0, t + DIP);
+  setTimeout(() => {
+    if (target !== voiceGain || !audioContext) return;  // a crossfade replaced it
+    try { target.disconnect(); } catch(e){}
+    connectVoiceToChain(target);
+    const t2 = audioContext.currentTime;
+    target.gain.cancelScheduledValues(t2);
+    target.gain.setValueAtTime(0, t2);
+    target.gain.linearRampToValueAtTime(1, t2 + DIP);
+  }, DIP * 1000 + 4);
 }
 
 function stopSource(){
   if (!sourceNode || !audioContext) return;
-  gainNode.gain.cancelScheduledValues(audioContext.currentTime);
-  gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime);
-  gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.04);
-  const s = sourceNode;
-  setTimeout(() => { try { s.stop(); s.disconnect(); } catch(e){} }, 80);
+  const t = audioContext.currentTime;
+  gainNode.gain.cancelScheduledValues(t);
+  gainNode.gain.setValueAtTime(gainNode.gain.value, t);
+  gainNode.gain.linearRampToValueAtTime(0, t + 0.04);
+  const s = sourceNode, g = voiceGain;
+  try { s.stop(t + 0.06); } catch(e){}
+  s.onended = () => { try { s.disconnect(); if (g) g.disconnect(); } catch(e){} };
   sourceNode = null;
+  voiceGain = null;
 }
 
 function togglePlay(){
@@ -2126,28 +2340,56 @@ function togglePlay(){
   document.getElementById('playLed').classList.toggle('active', state.playing);
 }
 
-// when parameters change while playing, refresh the buffer
+// When parameters change while playing, re-render and crossfade to the result.
+//
+// This is a throttle, not a debounce. A debounce would reset its timer on every
+// input event, so a continuous slider drag would produce no audible update at
+// all until the user stopped moving. Instead the first change schedules a
+// rebuild and later changes ride along with it — whatever fires reads current
+// state — and because the timer is re-armed by the next change after it fires,
+// the final position is never missed.
+//
+// The second job is keeping crossfades from overlapping. Two fades in flight at
+// once do not sum to unity: the outgoing voice ramps down from wherever it had
+// got to while the incoming one ramps up from zero, and with phase-aligned
+// (hence strongly correlated) waveforms the surplus clips. Measured while
+// sweeping every control at once: peak 1.0056 with 86 railed samples. So a
+// rebuild waits for the fade in flight to finish before starting its own.
 let refreshTimer = null;
+let crossfadeBusyUntil = 0;   // audioContext time the in-flight crossfade ends
+
 function refreshIfPlaying(){
-  if (!state.playing) return;
-  if (refreshTimer) clearTimeout(refreshTimer);
+  if (!state.playing || !audioContext) return;
+  if (refreshTimer) return;   // one already queued; it will pick up current state
+  const waitS = Math.max(REFRESH_DEBOUNCE / 1000,
+                         crossfadeBusyUntil - audioContext.currentTime);
   refreshTimer = setTimeout(() => {
-    if (!state.playing) return;
-    // crossfade by replacing buffer with a new source
-    initAudio();
-    const samples = renderFull(WORKING_N);
-    const buf = audioContext.createBuffer(1, samples.length, audioContext.sampleRate);
-    buf.copyToChannel(samples, 0);
-    const newSrc = audioContext.createBufferSource();
-    newSrc.buffer = buf;
-    newSrc.loop = true;
-    newSrc.playbackRate.value = getPlaybackRate();
-    connectSourceToChain(newSrc);
-    newSrc.start();
-    const oldSrc = sourceNode;
-    sourceNode = newSrc;
-    setTimeout(() => { if (oldSrc) try { oldSrc.stop(); oldSrc.disconnect(); } catch(e){} }, 20);
-  }, 30);
+    refreshTimer = null;
+    crossfadeToCurrentWaveform();
+  }, waitS * 1000 + 5);
+}
+
+function crossfadeToCurrentWaveform(){
+  if (!state.playing || !audioContext) return;
+  const { src, gain } = createVoice(renderFull(WORKING_N));
+  connectVoiceToChain(gain);
+
+  // Schedule a few ms out so both ramps land wholly in the future rather than
+  // partly in the past, which would step instead of ramp.
+  const t0 = audioContext.currentTime + 0.005;
+  const offset = voicePhaseOffsetAt(t0);
+
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(1, t0 + XFADE);
+  src.start(t0, offset);
+
+  retireVoice(sourceNode, voiceGain, t0);
+
+  sourceNode = src;
+  voiceGain = gain;
+  voiceStartTime = t0;
+  voiceStartOffset = offset;
+  crossfadeBusyUntil = t0 + XFADE;
 }
 
 // ============================================================
@@ -2220,8 +2462,10 @@ function encodeWAV(samples, sampleRate, bitDepth){
   if (bitDepth === 16) {
     for (let i = 0; i < len; i++) {
       let s = Math.max(-1, Math.min(1, samples[i]));
-      s = s < 0 ? s * 0x8000 : s * 0x7fff;
-      v.setInt16(off, s | 0, true);
+      // Round, don't truncate — `| 0` truncates toward zero and biases every
+      // sample by up to 1 LSB. The 24-bit branch below always rounded.
+      const v16 = Math.round(s < 0 ? s * 0x8000 : s * 0x7fff);
+      v.setInt16(off, Math.max(-0x8000, Math.min(0x7fff, v16)), true);
       off += 2;
     }
   } else if (bitDepth === 24) {
@@ -2567,11 +2811,38 @@ function syncUIFromState(){
   updateSliderRelevance();
 }
 
+// Push state.filter back onto the filter panel's controls. Shared by
+// resetState() and applySnapshot() — the filter section is the one part of the
+// patch neither syncUIFromState() nor the markup defaults cover.
+function syncFilterUIFromState(){
+  const hz = state.filter.cutoff;
+  document.getElementById('filt-cutoff').value = Math.round(cutoffHzToSlider(hz));
+  document.getElementById('val-cutoff').textContent =
+    hz < 1000 ? Math.round(hz) + ' Hz' : (hz / 1000).toFixed(2) + ' kHz';
+  document.getElementById('filt-q').value = state.filter.q;
+  document.getElementById('val-q').textContent = state.filter.q.toFixed(1);
+  document.getElementById('filt-lforate').value = state.filter.lfoRate;
+  document.getElementById('val-lforate').textContent = state.filter.lfoRate.toFixed(2) + ' Hz';
+  document.getElementById('filt-lfodepth').value = Math.round(state.filter.lfoDepth * 100);
+  document.getElementById('val-lfodepth').textContent = Math.round(state.filter.lfoDepth * 100) + '%';
+  document.getElementById('filt-drive').value = state.filter.drive;
+  document.getElementById('val-filt-drive').textContent = state.filter.drive.toFixed(1) + ' dB';
+  document.querySelectorAll('#filter-type-row .mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.ft === state.filter.type);
+  });
+  document.getElementById('val-filt-type').textContent = state.filter.type.toUpperCase();
+}
+
 function resetState(){
   Object.assign(state.oscA, {type:'sine',phase:0,harm:64,sym:0.5,steps:8,seed:7,level:1.0});
   Object.assign(state.oscB, {type:'sine',phase:0,harm:64,sym:0.5,steps:8,seed:7,level:0.0,ratio:1});
   Object.assign(state.mix, {mode:'BLEND',amount:0});
   Object.assign(state.shape, {fold:0,drive:0,crush:0,pd:0});
+  // The filter is part of the patch, so RESET has to clear it too — leaving a
+  // resonant lowpass engaged after "reset all parameters" is a nasty surprise.
+  // Volume is deliberately NOT reset: it's a monitoring level, not a patch
+  // parameter, and stamping on it mid-session is hostile.
+  Object.assign(state.filter, {type:'off',cutoff:2000,q:1,lfoRate:2,lfoDepth:0,drive:0});
   state.norm = true;
   state.tuneNote = 36;
   state.cycles = 1;
@@ -2586,6 +2857,15 @@ function resetState(){
   for (let i = 0; i < state.wavetable.length; i++) state.wavetable[i] = Math.sin(i / state.wavetable.length * 2 * Math.PI);
   drawWT();
   syncUIFromState();
+  syncFilterUIFromState();
+  // Push the cleared filter to the live audio graph and re-route around the
+  // (now bypassed) filter node if we were playing through it.
+  if (audioContext) {
+    updateFilterNode();
+    updateLFO();
+    updateFilterDrive();
+    if (sourceNode) rerouteVoice();
+  }
   render();
 }
 
@@ -2632,24 +2912,8 @@ function applySnapshot(snap){
   // 2. OSC + mix + shape UI (uses existing helper)
   syncUIFromState();
 
-  // 3. Filter UI — cutoff slider is log-scaled, invert hz back to 0..1000.
-  const fInv = (hz) => 1000 * Math.log(hz / 20) / Math.log(1000);
-  document.getElementById('filt-cutoff').value = Math.round(fInv(state.filter.cutoff));
-  const hz = state.filter.cutoff;
-  document.getElementById('val-cutoff').textContent =
-    hz < 1000 ? Math.round(hz) + ' Hz' : (hz/1000).toFixed(2) + ' kHz';
-  document.getElementById('filt-q').value = state.filter.q;
-  document.getElementById('val-q').textContent = state.filter.q.toFixed(1);
-  document.getElementById('filt-lforate').value = state.filter.lfoRate;
-  document.getElementById('val-lforate').textContent = state.filter.lfoRate.toFixed(2) + ' Hz';
-  document.getElementById('filt-lfodepth').value = Math.round(state.filter.lfoDepth * 100);
-  document.getElementById('val-lfodepth').textContent = Math.round(state.filter.lfoDepth * 100) + '%';
-  document.getElementById('filt-drive').value = state.filter.drive;
-  document.getElementById('val-filt-drive').textContent = state.filter.drive.toFixed(1) + ' dB';
-  document.querySelectorAll('#filter-type-row .mode-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.ft === state.filter.type);
-  });
-  document.getElementById('val-filt-type').textContent = state.filter.type.toUpperCase();
+  // 3. Filter UI
+  syncFilterUIFromState();
 
   // 4. Norm toggle
   document.getElementById('norm-on').classList.toggle('active', state.norm);
@@ -2663,10 +2927,7 @@ function applySnapshot(snap){
     x.classList.toggle('active', parseInt(x.dataset.bits) === state.exportBits));
 
   // 6. Volume slider + readout
-  document.getElementById('volume').value = Math.round(state.volume * 100);
-  const db = state.volume <= 0.001 ? -Infinity : 20 * Math.log10(state.volume);
-  document.getElementById('val-vol').textContent =
-    db === -Infinity ? '−∞dB' : (db >= 0 ? '+' : '') + db.toFixed(0) + 'dB';
+  updateVolumeReadout();
 
   // 7. Tune note (function handles state + UI + audio playback rate + ticks).
   setTuneNote(snap.tuneNote);
@@ -2676,12 +2937,9 @@ function applySnapshot(snap){
     updateFilterNode();
     updateLFO();
     updateFilterDrive();
-    if (sourceNode) {
-      try { sourceNode.disconnect(); } catch(e){}
-      connectSourceToChain(sourceNode);
-    }
+    if (sourceNode) rerouteVoice();
     if (gainNode) {
-      gainNode.gain.setTargetAtTime(state.volume * state.volume, audioContext.currentTime, 0.02);
+      gainNode.gain.setTargetAtTime(volumeToGain(state.volume), audioContext.currentTime, 0.02);
     }
   }
 
@@ -2720,6 +2978,19 @@ function updateWTIndicator(){
 // ABOUT MODAL
 // ============================================================
 const aboutModal = document.getElementById('about-modal');
+
+// The version is single-sourced from Cargo.toml via the app_version command,
+// so cutting a release means bumping the manifests — never this file. Shows
+// "dev" outside Tauri (plain-browser testing), where there is no binary to ask.
+function initAboutVersion(){
+  const el = document.getElementById('about-version');
+  const tauri = window.__TAURI__;
+  if (!(tauri && tauri.core)) { el.textContent = 'dev'; return; }
+  tauri.core.invoke('app_version')
+    .then(v => { el.textContent = v; })
+    .catch(() => { el.textContent = 'dev'; });
+}
+initAboutVersion();
 function openAboutModal(){ aboutModal.classList.add('open'); }
 function closeAboutModal(){ aboutModal.classList.remove('open'); }
 document.getElementById('btn-about').addEventListener('click', openAboutModal);
@@ -2780,6 +3051,10 @@ function init(){
   resizeWT();
   updateSliderRelevance();
   syncUIFromState();
+  // Filter + volume aren't covered by syncUIFromState(); push them from state
+  // so no readout can disagree with the markup's hardcoded defaults.
+  syncFilterUIFromState();
+  updateVolumeReadout();
   setTuneNote(state.tuneNote);
   drawWT();
   render();

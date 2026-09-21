@@ -1,10 +1,18 @@
 {
-  "name": "desktop",
+  "name": "monocycle",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Single-cycle waveform designer for hardware samplers",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Shei-Designs/MonoCycle.git"
+  },
   "type": "module",
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

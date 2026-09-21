@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "MonoCycle",
-  "version": "0.1.0",
-  "identifier": "com.monocycle.app",
+  "version": "1.0.0",
+  "identifier": "com.sheidesigns.monocycle",
   "build": {
     "frontendDist": "../src"
   },
@@ -12,10 +12,11 @@
       {
         "title": "MonoCycle",
         "width": 1480,
-        "height": 1060,
+        "height": 960,
+        "minWidth": 800,
+        "minHeight": 560,
         "maxWidth": 1480,
-        "minWidth": 1100,
-        "minHeight": 840
+        "resizable": true
       }
     ],
     "security": {
@@ -31,6 +32,19 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "Music",
+    "publisher": "Shei Designs",
+    "homepage": "https://github.com/Shei-Designs/MonoCycle",
+    "license": "GPL-3.0-only",
+    "licenseFile": "../../LICENSE",
+    "copyright": "Copyright (C) 2026 Andrew O'Shei. Licensed under the GNU GPL v3.",
+    "shortDescription": "Single-cycle waveform designer for hardware samplers",
+    "longDescription": "MonoCycle builds precisely tuned single-cycle waveforms and exports them as PCM WAV files for hardware samplers. Two oscillators, ten combine modes, four shaping stages, a drawable wavetable and a preview that plays at the exact pitch the exported file will sound at when triggered at native rate.",
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    }
   }
 }
