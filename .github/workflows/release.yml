@@ -74,6 +74,18 @@ jobs:
 
       # webkit2gtk-4.1 is the WebView; the rest are what tauri-bundler needs to
       # produce .deb/.rpm/AppImage. Only Linux needs any of this.
+      #
+      # xdg-utils is not optional: tauri-plugin-opener copies the host's
+      # /usr/bin/xdg-open into the AppImage, and the ubuntu-22.04-arm runner
+      # image ships without it. Missing, the AppImage step fails the whole job
+      # with "xdg-open binary not found" — after the .deb and .rpm have already
+      # bundled successfully, which makes it look more mysterious than it is.
+      #
+      # The two gstreamer sink packages are pinned rather than left to the
+      # runner image: bundleMediaFramework copies whatever plugins are installed
+      # into the AppImage, and autoaudiosink can only select from what it finds
+      # there. The x86 image happened to carry pulseaudio but not alsa; relying
+      # on that is how you ship a silent build.
       - name: Install Linux dependencies
         if: startsWith(matrix.platform, 'ubuntu')
         run: |
@@ -85,7 +97,10 @@ jobs:
             libgtk-3-dev \
             patchelf \
             file \
-            desktop-file-utils
+            desktop-file-utils \
+            xdg-utils \
+            gstreamer1.0-pulseaudio \
+            gstreamer1.0-alsa
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
