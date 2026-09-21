@@ -31,6 +31,16 @@ on:
 permissions:
   contents: write
 
+# Don't leave superseded runs burning four runners in parallel. A second push or
+# dispatch on the same ref cancels the one still in flight.
+#
+# Tag builds are deliberately exempt: a release build that gets cancelled
+# halfway leaves a draft release with some platforms' installers missing, which
+# is a far worse outcome than a few wasted runner-minutes.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   build:
     strategy:
