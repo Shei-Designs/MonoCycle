@@ -12,11 +12,12 @@
       {
         "title": "MonoCycle",
         "width": 1480,
-        "height": 960,
+        "height": 970,
         "minWidth": 800,
         "minHeight": 560,
         "maxWidth": 1480,
-        "resizable": true
+        "resizable": true,
+        "center": true
       }
     ],
     "security": {

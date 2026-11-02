@@ -5,6 +5,38 @@ All notable changes to MonoCycle are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The whole interface now always fits the window, with no scrolling.** When
+  the window is smaller than the layout's design size (1200 × ~960), the UI
+  scales down uniformly instead of overflowing. The layout itself no longer
+  reflows into two or one columns on narrow windows. Dialogs scale with it.
+- On first launch the window shrinks to fit the screen if the default
+  1480 × 970 would not fit (e.g. 1366 × 768 laptops), and opens centred.
+- **New app icon**: the Shei Designs MonoCycle tile (a disc cut by one sine
+  cycle, Cycle pink) replaces the default Tauri icon on every platform. The
+  source and the regeneration script live in `assets/brand/`.
+
+### Fixed
+
+- **The wavetable editor was sluggish to draw in, especially on Linux.** Every
+  pointer event redrew the editor *and* the main scope hidden behind the
+  dialog, both with expensive canvas glow, and WebKitGTK delivers pointer
+  events faster than the screen refreshes. Drawing now updates at most once per
+  frame, and the covered scope is only repainted when the dialog closes.
+- Dragging a wavetable stroke past the edge of the dialog and releasing over
+  the backdrop closed the editor. It now only closes when the click starts on
+  the backdrop. Strokes also keep tracking outside the canvas (clamped to the
+  edges) instead of stopping at its border.
+- The wavetable editor's header text ran under the close button.
+- PLAY could stay silent after the system slept or the audio device changed:
+  it only resumed the audio engine from the `suspended` state, not WebKit's
+  `interrupted` state.
+- Moving the window to a monitor with a different scale factor left the scope
+  and wavetable canvases rendered at the old pixel density (soft).
+
 ## [1.0.0] — 2026-09-21
 
 First public release. Pre-built binaries for Linux, macOS, Windows and

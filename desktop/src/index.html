@@ -80,27 +80,30 @@
   --display:'VT323',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+html,body{height:100%;overflow:hidden}
 body{
   font-family:var(--mono);
   font-size:12px;
   background:var(--bg);
   color:var(--text);
-  overflow-x:hidden;
   background-image:
     radial-gradient(ellipse at 20% 0%,rgba(255,43,214,0.07),transparent 50%),
     radial-gradient(ellipse at 80% 100%,rgba(160,96,255,0.06),transparent 60%),
     repeating-linear-gradient(0deg,transparent 0px,transparent 2px,rgba(255,255,255,0.012) 2px,rgba(255,255,255,0.012) 3px);
   letter-spacing:0.02em;
 }
+/* The layout is designed at a fixed minimum size and never reflows to fewer
+   columns. fitToWindow() sets width/height/left and, when the window is smaller
+   than that design size, scales the whole thing down uniformly so it always
+   fits without scrolling. The scope row (1fr) absorbs any spare height. */
 .app{
-  min-height:100vh;
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  transform-origin:0 0;
   display:grid;
   grid-template-rows:auto 1fr auto auto auto;
   padding:14px;
   gap:10px;
-  max-width:1480px;
-  margin:0 auto;
 }
 
 /* ---------- HEADER ---------- */
@@ -307,10 +310,13 @@ input[type=range]:disabled{opacity:0.4}
   border-radius:2px;
   box-shadow:0 0 50px rgba(255,43,214,0.18),0 12px 60px rgba(0,0,0,0.9);
   width:100%;max-width:920px;
-  max-height:92vh;
+  max-height:calc(92vh / var(--ui-scale,1));
   display:flex;flex-direction:column;
   position:relative;
   overflow:hidden;
+  flex-shrink:0;
+  /* Same scale as .app, so dialogs match the main UI on small windows. */
+  transform:scale(var(--ui-scale,1));
 }
 .modal-close{
   position:absolute;top:8px;right:8px;
@@ -324,6 +330,8 @@ input[type=range]:disabled{opacity:0.4}
   transition:all 0.1s;
 }
 .modal-close:hover{color:var(--red);border-color:var(--red)}
+/* keep the header's right-aligned text clear of the close button */
+.modal-panel > .panel-head{padding-right:44px}
 
 /* ---------- ABOUT MODAL ---------- */
 .about-panel{max-width:480px}
@@ -674,18 +682,6 @@ input[type=range]:disabled{opacity:0.4}
   text-shadow:0 0 4px var(--phos-glow);line-height:0.9;letter-spacing:0.05em;
 }
 
-/* responsive */
-@media (max-width:1100px){
-  .grid{grid-template-columns:repeat(2,1fr)}
-  .wt-wrap{grid-template-columns:1fr}
-  .transport{grid-template-columns:1fr 1fr;gap:10px}
-  .info-bar{grid-template-columns:repeat(2,1fr)}
-}
-@media (max-width:600px){
-  .grid{grid-template-columns:1fr}
-  .info-bar{grid-template-columns:1fr 1fr}
-}
-
 /* tooltip on hover */
 .tooltip{position:relative}
 .tooltip[data-tip]:hover::after{
@@ -921,6 +917,51 @@ select:hover{border-color:var(--border-lit)}
     </div>
   </div>
 
+  <!-- ====== TRANSPORT ====== -->
+  <div class="transport">
+    <button class="btn-big" id="btn-play"><span style="font-size:15px">▶</span> PLAY</button>
+    <div class="transport-block" style="min-width:120px">
+      <div class="lbl">Volume <span style="color:var(--phos)" id="val-vol">−12dB</span></div>
+      <input type="range" id="volume" min="0" max="100" value="50" step="1">
+    </div>
+    <div class="transport-block" style="min-width:300px">
+      <div class="lbl">Tune (native &amp; preview) <span style="color:var(--phos);font-family:var(--display);font-size:15px;letter-spacing:0.05em" id="val-tune">C2</span></div>
+      <div class="slider-with-ticks">
+        <input type="range" id="tune-note" min="12" max="84" value="36" step="1">
+        <div class="tick-row" id="tune-ticks">
+          <div class="tick" data-tune="12">C0</div>
+          <div class="tick" data-tune="24">C1</div>
+          <div class="tick" data-tune="36">C2</div>
+          <div class="tick" data-tune="48">C3</div>
+          <div class="tick" data-tune="60">C4</div>
+          <div class="tick" data-tune="72">C5</div>
+          <div class="tick" data-tune="84">C6</div>
+        </div>
+      </div>
+    </div>
+    <div class="transport-block">
+      <div class="lbl">Cycles</div>
+      <div class="option-group" id="cycles-group">
+        <button class="option-btn active" data-cyc="1">×1</button>
+        <button class="option-btn" data-cyc="2">×2</button>
+        <button class="option-btn" data-cyc="4">×4</button>
+        <button class="option-btn" data-cyc="8">×8</button>
+      </div>
+    </div>
+    <div class="transport-block">
+      <div class="lbl">Bits</div>
+      <div class="option-group" id="bits-group">
+        <button class="option-btn active" data-bits="16">16</button>
+        <button class="option-btn" data-bits="24">24</button>
+      </div>
+    </div>
+    <button class="btn-big danger" id="btn-reset">RESET</button>
+    <button class="btn-big primary" id="btn-export"><span style="font-size:15px">⇩</span> EXPORT WAV</button>
+  </div>
+</div>
+
+<!-- Modals live outside .app so the scaled .app box is not their containing
+     block: the backdrop must cover the whole window at any UI scale. -->
   <!-- ====== WAVETABLE MODAL ====== -->
   <div class="modal-overlay" id="wt-modal">
     <div class="modal-panel">
@@ -988,49 +1029,6 @@ select:hover{border-color:var(--border-lit)}
       </div>
     </div>
   </div>
-
-  <!-- ====== TRANSPORT ====== -->
-  <div class="transport">
-    <button class="btn-big" id="btn-play"><span style="font-size:15px">▶</span> PLAY</button>
-    <div class="transport-block" style="min-width:120px">
-      <div class="lbl">Volume <span style="color:var(--phos)" id="val-vol">−12dB</span></div>
-      <input type="range" id="volume" min="0" max="100" value="50" step="1">
-    </div>
-    <div class="transport-block" style="min-width:300px">
-      <div class="lbl">Tune (native &amp; preview) <span style="color:var(--phos);font-family:var(--display);font-size:15px;letter-spacing:0.05em" id="val-tune">C2</span></div>
-      <div class="slider-with-ticks">
-        <input type="range" id="tune-note" min="12" max="84" value="36" step="1">
-        <div class="tick-row" id="tune-ticks">
-          <div class="tick" data-tune="12">C0</div>
-          <div class="tick" data-tune="24">C1</div>
-          <div class="tick" data-tune="36">C2</div>
-          <div class="tick" data-tune="48">C3</div>
-          <div class="tick" data-tune="60">C4</div>
-          <div class="tick" data-tune="72">C5</div>
-          <div class="tick" data-tune="84">C6</div>
-        </div>
-      </div>
-    </div>
-    <div class="transport-block">
-      <div class="lbl">Cycles</div>
-      <div class="option-group" id="cycles-group">
-        <button class="option-btn active" data-cyc="1">×1</button>
-        <button class="option-btn" data-cyc="2">×2</button>
-        <button class="option-btn" data-cyc="4">×4</button>
-        <button class="option-btn" data-cyc="8">×8</button>
-      </div>
-    </div>
-    <div class="transport-block">
-      <div class="lbl">Bits</div>
-      <div class="option-group" id="bits-group">
-        <button class="option-btn active" data-bits="16">16</button>
-        <button class="option-btn" data-bits="24">24</button>
-      </div>
-    </div>
-    <button class="btn-big danger" id="btn-reset">RESET</button>
-    <button class="btn-big primary" id="btn-export"><span style="font-size:15px">⇩</span> EXPORT WAV</button>
-  </div>
-</div>
 
 <script>
 // ============================================================
@@ -1438,22 +1436,95 @@ function renderFull(N){
 }
 
 // ============================================================
+// FIT TO WINDOW
+// ============================================================
+// The interface is laid out at no less than FIT_MIN_W wide and its natural
+// height (scope at its CSS min-height), then scaled down uniformly when the
+// window is smaller than that, so it always fits with no scrolling and the
+// layout never reflows. Above the minimum it lays out at 1:1, up to FIT_MAX_W
+// wide (centred), and the scope row takes any spare height.
+const FIT_MIN_W = 1200;
+const FIT_MAX_W = 1480;
+const appEl = document.querySelector('.app');
+let uiScale = 1;
+
+function fitToWindow(){
+  const vw = document.documentElement.clientWidth;
+  const vh = document.documentElement.clientHeight;
+  const sW = Math.min(1, vw / FIT_MIN_W);
+  const w = Math.min(FIT_MAX_W, vw / sW);
+
+  // Measure the natural height at that width: with height:auto the 1fr scope
+  // row collapses to its min-height. offsetHeight ignores transforms.
+  appEl.style.width = w + 'px';
+  appEl.style.height = 'auto';
+  appEl.style.transform = 'none';
+  const naturalH = appEl.offsetHeight;
+
+  const s = Math.min(sW, vh / naturalH);
+  const layoutW = Math.min(FIT_MAX_W, vw / s);
+  appEl.style.width = layoutW + 'px';
+  appEl.style.height = (vh / s) + 'px';
+  appEl.style.left = Math.max(0, (vw - layoutW * s) / 2) + 'px';
+  appEl.style.transform = s < 1 ? `scale(${s})` : 'none';
+  document.documentElement.style.setProperty('--ui-scale', s);
+  uiScale = s;
+}
+
+// Size a canvas's backing store to its on-screen pixels (CSS size × UI scale ×
+// devicePixelRatio) and set the context transform so drawing code can keep
+// working in CSS layout units (clientWidth/clientHeight).
+function sizeCanvas(canvas, ctx){
+  const r = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(r.width * dpr));
+  canvas.height = Math.max(1, Math.round(r.height * dpr));
+  const cw = canvas.clientWidth || 1, ch = canvas.clientHeight || 1;
+  ctx.setTransform(canvas.width / cw, 0, 0, canvas.height / ch, 0, 0);
+}
+
+// ============================================================
 // SCOPE DRAWING
 // ============================================================
 const scopeCanvas = document.getElementById('scope');
 const sctx = scopeCanvas.getContext('2d');
-function resizeScope(){
-  const r = scopeCanvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  scopeCanvas.width = r.width * dpr;
-  scopeCanvas.height = r.height * dpr;
-  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+function resizeScope(){ sizeCanvas(scopeCanvas, sctx); }
+function onViewportChange(){
+  fitToWindow();
+  resizeScope(); drawScope();
+  resizeWT(); drawWT();
 }
-window.addEventListener('resize', () => { resizeScope(); drawScope(); resizeWT(); drawWT(); });
+window.addEventListener('resize', onViewportChange);
+
+// Dragging the window to a monitor with a different scale factor changes
+// devicePixelRatio without necessarily firing 'resize'; the canvases would
+// then be drawn at the old density and look soft. A resolution media query
+// only matches one value, so re-arm it at the new ratio each time it fires.
+(function watchPixelRatio(){
+  if (!window.matchMedia) return;
+  const mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+  const onChange = () => {
+    mq.removeEventListener('change', onChange);
+    onViewportChange();
+    watchPixelRatio();
+  };
+  mq.addEventListener('change', onChange);
+})();
+
+// The scope is covered by a near-opaque backdrop while a modal is open, so
+// repainting it (two shadowBlur passes, plus recompositing the dialog's large
+// shadows over it) is pure cost — and on WebKitGTK it is a lot of cost. Skip it
+// and repaint once when the modal closes.
+let scopeStale = false;
+function scopeCovered(){
+  return document.querySelector('.modal-overlay.open') !== null;
+}
 
 let lastWaveform = null;
 function drawScope(){
   if (!lastWaveform) return;
+  if (scopeCovered()) { scopeStale = true; return; }
+  scopeStale = false;
   const w = scopeCanvas.clientWidth;
   const h = scopeCanvas.clientHeight;
   sctx.clearRect(0, 0, w, h);
@@ -1634,13 +1705,7 @@ function stopScopeAnimation(){
 // ============================================================
 const wtCanvas = document.getElementById('wt-canvas');
 const wctx = wtCanvas.getContext('2d');
-function resizeWT(){
-  const r = wtCanvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  wtCanvas.width = r.width * dpr;
-  wtCanvas.height = r.height * dpr;
-  wctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
+function resizeWT(){ sizeCanvas(wtCanvas, wctx); }
 function drawWT(){
   const w = wtCanvas.clientWidth;
   const h = wtCanvas.clientHeight;
@@ -1684,8 +1749,9 @@ function drawWT(){
 let wtDrawing = false;
 let wtLastIdx = -1;
 let wtLastVal = 0;
+let wtRect = null;          // canvas rect, cached for the duration of a stroke
 function wtMouseToIdxVal(ev){
-  const r = wtCanvas.getBoundingClientRect();
+  const r = wtRect || wtCanvas.getBoundingClientRect();
   const x = (ev.clientX - r.left) / r.width;
   const y = (ev.clientY - r.top) / r.height;
   const idx = Math.max(0, Math.min(state.wavetable.length - 1, Math.floor(x * state.wavetable.length)));
@@ -1705,37 +1771,50 @@ function wtPaint(idx, val){
   state.wavetable[idx] = val;
   wtLastIdx = idx; wtLastVal = val;
 }
-wtCanvas.addEventListener('mousedown', e => {
+// Painting into the table is cheap; redrawing it and re-rendering the waveform
+// is not. Pointer events can arrive far faster than the display refreshes
+// (WebKitGTK does not coalesce them to frames), so each event only paints, and
+// the redraw + render runs at most once per animation frame.
+let wtFrame = 0;
+function wtScheduleRender(){
+  if (wtFrame) return;
+  wtFrame = requestAnimationFrame(() => {
+    wtFrame = 0;
+    drawWT();
+    render();
+  });
+}
+// Pointer capture keeps the stroke alive when the cursor leaves the canvas
+// (values clamp to the edges) and covers mouse, pen and touch in one path.
+wtCanvas.style.touchAction = 'none';
+wtCanvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  wtCanvas.setPointerCapture(e.pointerId);
   wtDrawing = true;
   wtLastIdx = -1;
+  wtRect = wtCanvas.getBoundingClientRect();
   const { idx, val } = wtMouseToIdxVal(e);
   wtPaint(idx, val);
-  drawWT();
-  render();
+  wtScheduleRender();
 });
-wtCanvas.addEventListener('mousemove', e => {
+wtCanvas.addEventListener('pointermove', e => {
   if (!wtDrawing) return;
-  const { idx, val } = wtMouseToIdxVal(e);
-  wtPaint(idx, val);
-  drawWT();
-  render();
+  // Replay any moves the browser merged into this event so fast strokes keep
+  // their shape.
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  for (const ev of (evs.length ? evs : [e])) {
+    const { idx, val } = wtMouseToIdxVal(ev);
+    wtPaint(idx, val);
+  }
+  wtScheduleRender();
 });
-window.addEventListener('mouseup', () => { wtDrawing = false; wtLastIdx = -1; });
-wtCanvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  wtDrawing = true; wtLastIdx = -1;
-  const t = e.touches[0];
-  const { idx, val } = wtMouseToIdxVal({clientX:t.clientX,clientY:t.clientY});
-  wtPaint(idx, val); drawWT(); render();
-}, {passive:false});
-wtCanvas.addEventListener('touchmove', e => {
-  if (!wtDrawing) return;
-  e.preventDefault();
-  const t = e.touches[0];
-  const { idx, val } = wtMouseToIdxVal({clientX:t.clientX,clientY:t.clientY});
-  wtPaint(idx, val); drawWT(); render();
-}, {passive:false});
-wtCanvas.addEventListener('touchend', () => { wtDrawing = false; wtLastIdx = -1; });
+function wtEndStroke(){
+  wtDrawing = false; wtLastIdx = -1; wtRect = null;
+}
+wtCanvas.addEventListener('pointerup', wtEndStroke);
+wtCanvas.addEventListener('pointercancel', wtEndStroke);
+wtCanvas.addEventListener('lostpointercapture', wtEndStroke);
 
 function wtInit(fn){
   const N = state.wavetable.length;
@@ -2322,7 +2401,9 @@ function stopSource(){
 
 function togglePlay(){
   initAudio();
-  if (audioContext.state === 'suspended') audioContext.resume();
+  // Not just 'suspended': WebKit can also report 'interrupted' after the
+  // system sleeps or the audio device changes, and that needs a resume too.
+  if (audioContext.state !== 'running') audioContext.resume().catch(() => {});
   if (state.playing) {
     stopSource();
     state.playing = false;
@@ -2960,13 +3041,26 @@ function openWTModal(){
 }
 function closeWTModal(){
   wtModal.classList.remove('open');
+  redrawScopeIfStale();
+}
+function redrawScopeIfStale(){
+  if (scopeStale && !scopeCovered()) drawScope();
 }
 wtOpenBtn.addEventListener('click', openWTModal);
 document.getElementById('wt-modal-close').addEventListener('click', closeWTModal);
-// Click on backdrop (overlay area outside panel) closes
-wtModal.addEventListener('click', e => {
-  if (e.target === wtModal) closeWTModal();
-});
+
+// Click on the backdrop (outside the panel) closes — but only when the press
+// started on the backdrop too. Otherwise a drawing stroke that ends outside the
+// panel produces a click on the overlay and throws the editor away mid-edit.
+function closeOnBackdropClick(overlay, close){
+  let pressedOnBackdrop = false;
+  overlay.addEventListener('pointerdown', e => { pressedOnBackdrop = e.target === overlay; });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay && pressedOnBackdrop) close();
+    pressedOnBackdrop = false;
+  });
+}
+closeOnBackdropClick(wtModal, closeWTModal);
 
 // Indicator: highlight the header button when either OSC is using the wavetable
 function updateWTIndicator(){
@@ -2992,10 +3086,10 @@ function initAboutVersion(){
 }
 initAboutVersion();
 function openAboutModal(){ aboutModal.classList.add('open'); }
-function closeAboutModal(){ aboutModal.classList.remove('open'); }
+function closeAboutModal(){ aboutModal.classList.remove('open'); redrawScopeIfStale(); }
 document.getElementById('btn-about').addEventListener('click', openAboutModal);
 document.getElementById('about-modal-close').addEventListener('click', closeAboutModal);
-aboutModal.addEventListener('click', e => { if (e.target === aboutModal) closeAboutModal(); });
+closeOnBackdropClick(aboutModal, closeAboutModal);
 
 // Route external links (.about-link) through the OS browser via Tauri's opener
 // plugin. Falls back to window.open for plain-browser testing.
@@ -3047,6 +3141,7 @@ window.addEventListener('keydown', e => {
 // INIT
 // ============================================================
 function init(){
+  fitToWindow();
   resizeScope();
   resizeWT();
   updateSliderRelevance();
@@ -3058,6 +3153,10 @@ function init(){
   setTuneNote(state.tuneNote);
   drawWT();
   render();
+  // Bundled fonts can land after first layout and change the natural height.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { fitToWindow(); resizeScope(); drawScope(); });
+  }
 }
 init();
 </script>
